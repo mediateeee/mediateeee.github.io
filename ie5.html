@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internet Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  body {
+    background: #3a6ea5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Microsoft Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+    font-size: 12px;
+    overflow: hidden;
+  }
+
+  .window {
+    width: 880px;
+    height: 640px;
+    background: #ece9d8;
+    border: 3px solid;
+    border-color: #ffffff #404040 #404040 #ffffff;
+    box-shadow: 4px 4px 20px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 500px;
+    min-height: 350px;
+    overflow: hidden;
+    z-index: 100;
+  }
+
+  /* 标题栏 */
+  .title-bar {
+    background: linear-gradient(90deg, #0a246a, #3a6ea5);
+    color: white;
+    padding: 3px 5px 3px 4px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: default;
+    flex-shrink: 0;
+    height: 28px;
+  }
+  .title-bar .icon {
+    width: 20px; height: 20px;
+    background: #ece9d8;
+    margin-right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #0a246a;
+    font-weight: bold;
+    border: 1px solid #808080;
+    font-style: italic;
+    font-family: 'Times New Roman', serif;
+  }
+  .title-bar .title-text { flex: 1; letter-spacing: 0.3px; font-size: 12px; }
+  .title-bar .controls { display: flex; gap: 3px; }
+  .title-bar .controls button {
+    width: 20px; height: 20px;
+    background: #ece9d8;
+    border: 1px solid #a0a0a0;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    line-height: 1;
+  }
+  .title-bar .controls button:hover { background: #d4d0c8; }
+  .title-bar .controls .close:hover { background: #e04343; color: white; }
+
+  /* 菜单栏 */
+  .menu-bar {
+    background: #ece9d8;
+    padding: 1px 4px;
+    display: flex;
+    gap: 0px;
+    font-size: 12px;
+    border-bottom: 1px solid #a0a0a0;
+    flex-shrink: 0;
+    height: 24px;
+    align-items: center;
+    position: relative;
+  }
+  .menu-bar .menu-item {
+    padding: 2px 8px;
+    cursor: default;
+    position: relative;
+    z-index: 10;
+  }
+  .menu-bar .menu-item:hover { background: #0a246a; color: white; }
+  .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #ffffff #404040 #404040 #ffffff;
+    min-width: 210px;
+    padding: 2px 0;
+    z-index: 200;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.4);
+  }
+  .dropdown.show { display: block; }
+  .dropdown .item {
+    padding: 3px 24px 3px 28px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .dropdown .item:hover { background: #0a246a; color: white; }
+  .dropdown .item .shortcut {
+    position: absolute;
+    right: 8px;
+    color: #666;
+    font-size: 11px;
+  }
+  .dropdown .item:hover .shortcut { color: #ccc; }
+  .dropdown .sep {
+    height: 1px;
+    background: #a0a0a0;
+    margin: 2px 4px;
+  }
+  .dropdown .item .check {
+    position: absolute;
+    left: 6px;
+    width: 16px;
+    text-align: center;
+  }
+  .dropdown .item.disabled { color: #999; cursor: default; }
+  .dropdown .item.disabled:hover { background: transparent; color: #999; }
+
+  /* 工具栏 */
+  .toolbar {
+    background: #ece9d8;
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #a0a0a0;
+    flex-shrink: 0;
+    height: 36px;
+  }
+  .toolbar button {
+    background: #ece9d8;
+    border: 1px solid #ece9d8;
+    padding: 2px 5px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 28px;
+    font-family: 'Microsoft Sans Serif', sans-serif;
+  }
+  .toolbar button:hover { border: 1px solid #0a246a; background: #d4d0c8; }
+  .toolbar button:active { border: 1px inset #404040; }
+  .toolbar .sep {
+    width: 1px;
+    height: 26px;
+    background: #a0a0a0;
+    margin: 0 2px;
+  }
+  .toolbar .btn-icon { font-size: 14px; line-height: 1; }
+
+  /* 地址栏 */
+  .address-bar {
+    background: #ece9d8;
+    padding: 2px 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-bottom: 1px solid #a0a0a0;
+    flex-shrink: 0;
+    height: 28px;
+  }
+  .address-bar label { font-weight: bold; white-space: nowrap; font-size: 12px; }
+  .address-bar input {
+    flex: 1;
+    padding: 2px 4px;
+    border: 2px inset #d4d0c8;
+    background: white;
+    font-size: 12px;
+    outline: none;
+    height: 22px;
+    font-family: 'Microsoft Sans Serif', sans-serif;
+  }
+  .address-bar .go-btn {
+    background: #ece9d8;
+    border: 1px solid #a0a0a0;
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 12px;
+    height: 22px;
+    font-family: 'Microsoft Sans Serif', sans-serif;
+  }
+  .address-bar .go-btn:hover { background: #d4d0c8; }
+
+  /* 内容 */
+  .content {
+    flex: 1;
+    background: white;
+    border: 2px inset #d4d0c8;
+    margin: 2px 2px 1px 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .content iframe { width: 100%; height: 100%; border: none; }
+  .loading-overlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.75);
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    color: #0a246a;
+    font-weight: bold;
+    z-index: 5;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .loading-overlay.show { display: flex; }
+  .loading-overlay .spinner {
+    width: 32px; height: 32px;
+    border: 4px solid #d4d0c8;
+    border-top-color: #0a246a;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 状态栏 */
+  .status-bar {
+    background: #ece9d8;
+    padding: 1px 6px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    border-top: 1px solid #a0a0a0;
+    flex-shrink: 0;
+    height: 22px;
+    align-items: center;
+  }
+  .status-bar .left { display: flex; gap: 12px; }
+  .status-bar .right { display: flex; gap: 8px; align-items: center; }
+  .status-bar .progress {
+    width: 70px; height: 12px;
+    border: 1px solid #808080;
+    background: white;
+    position: relative;
+  }
+  .status-bar .progress .fill {
+    height: 100%;
+    width: 0%;
+    background: #0a246a;
+    transition: width 0.15s;
+  }
+  .status-bar .zone {
+    border: 1px solid #a0a0a0;
+    padding: 0 8px;
+    background: #d4d0c8;
+    font-size: 10px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* 弹窗（假的对话框） */
+  .dialog-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+  }
+  .dialog-overlay.show { display: flex; }
+  .dialog-box {
+    background: #ece9d8;
+    border: 3px solid;
+    border-color: #ffffff #404040 #404040 #ffffff;
+    padding: 20px 30px 16px 30px;
+    min-width: 320px;
+    max-width: 450px;
+    box-shadow: 4px 4px 20px rgba(0,0,0,0.5);
+  }
+  .dialog-box .title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .dialog-box .body {
+    font-size: 12px;
+    margin-bottom: 16px;
+    line-height: 1.6;
+    color: #1a1a1a;
+  }
+  .dialog-box .body input[type="text"] {
+    width: 100%;
+    padding: 3px 5px;
+    border: 2px inset #d4d0c8;
+    margin: 4px 0 8px 0;
+    font-size: 12px;
+  }
+  .dialog-box .btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .dialog-box .btns button {
+    padding: 4px 18px;
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #ffffff #404040 #404040 #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Microsoft Sans Serif', sans-serif;
+  }
+  .dialog-box .btns button:hover { background: #d4d0c8; }
+  .dialog-box .btns button:active { border-color: #404040 #ffffff #ffffff #404040; }
+
+  /* 关于对话框特殊样式 */
+  .about-box .icon-big {
+    font-size: 48px;
+    color: #0a246a;
+    font-style: italic;
+    font-family: 'Times New Roman', serif;
+    font-weight: bold;
+    background: #ece9d8;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #a0a0a0;
+    flex-shrink: 0;
+  }
+  .about-box .body { display: flex; gap: 16px; align-items: flex-start; }
+  .about-box .info h3 { font-size: 16px; margin-bottom: 4px; }
+  .about-box .info p { margin: 2px 0; color: #444; }
+</style>
+</head>
+<body>
+
+<!-- 主窗口 -->
+<div class="window" id="ieWindow">
+  <!-- 标题栏 -->
+  <div class="title-bar" id="titleBar">
+    <div class="icon">e</div>
+    <span class="title-text" id="windowTitle">Internet Explorer</span>
+    <div class="controls">
+      <button id="minBtn">−</button>
+      <button id="maxBtn">□</button>
+      <button class="close" id="closeBtn">✕</button>
+    </div>
+  </div>
+
+  <!-- 菜单栏 -->
+  <div class="menu-bar" id="menuBar">
+    <span class="menu-item" data-menu="file">文件(F)</span>
+    <span class="menu-item" data-menu="edit">编辑(E)</span>
+    <span class="menu-item" data-menu="view">查看(V)</span>
+    <span class="menu-item" data-menu="fav">收藏(A)</span>
+    <span class="menu-item" data-menu="tools">工具(T)</span>
+    <span class="menu-item" data-menu="help">帮助(H)</span>
+
+    <div class="dropdown" id="drop-file">
+      <div class="item" data-action="newWindow">新建窗口 <span class="shortcut">Ctrl+N</span></div>
+      <div class="item" data-action="newMail">新建邮件 <span class="shortcut">Ctrl+M</span></div>
+      <div class="sep"></div>
+      <div class="item" data-action="open">打开... <span class="shortcut">Ctrl+O</span></div>
+      <div class="item disabled">编辑 <span class="shortcut">Ctrl+E</span></div>
+      <div class="item disabled">保存 <span class="shortcut">Ctrl+S</span></div>
+      <div class="sep"></div>
+      <div class="item" data-action="pageSetup">页面设置...</div>
+      <div class="item" data-action="print">打印... <span class="shortcut">Ctrl+P</span></div>
+      <div class="item disabled">打印预览</div>
+      <div class="sep"></div>
+      <div class="item disabled">发送</div>
+      <div class="item disabled">导入和导出...</div>
+      <div class="sep"></div>
+      <div class="item disabled">属性</div>
+      <div class="sep"></div>
+      <div class="item" data-action="offline">工作脱机 <span class="check" id="offlineCheck"></span></div>
+      <div class="item" data-action="close">关闭 <span class="shortcut">Ctrl+W</span></div>
+    </div>
+
+    <div class="dropdown" id="drop-edit">
+      <div class="item disabled">剪切 <span class="shortcut">Ctrl+X</span></div>
+      <div class="item disabled">复制 <span class="shortcut">Ctrl+C</span></div>
+      <div class="item disabled">粘贴 <span class="shortcut">Ctrl+V</span></div>
+      <div class="sep"></div>
+      <div class="item disabled">全选 <span class="shortcut">Ctrl+A</span></div>
+      <div class="sep"></div>
+      <div class="item" data-action="find">查找(在当前页)... <span class="shortcut">Ctrl+F</span></div>
+    </div>
+
+    <div class="dropdown" id="drop-view">
+      <div class="item" data-action="toggleToolbar"><span class="check" id="toolbarCheck">✓</span> 工具栏</div>
+      <div class="item" data-action="toggleStatus"><span class="check" id="statusCheck">✓</span> 状态栏</div>
+      <div class="item disabled"><span class="check"></span> 浏览器栏</div>
+      <div class="sep"></div>
+      <div class="item disabled">转到</div>
+      <div class="item" data-action="stop">停止 <span class="shortcut">Esc</span></div>
+      <div class="item" data-action="refresh">刷新 <span class="shortcut">F5</span></div>
+      <div class="sep"></div>
+      <div class="item disabled">文字大小</div>
+      <div class="item disabled">编码</div>
+      <div class="sep"></div>
+      <div class="item disabled">源文件</div>
+      <div class="item" data-action="fullscreen">全屏 <span class="shortcut">F11</span></div>
+    </div>
+
+    <div class="dropdown" id="drop-fav">
+      <div class="item" data-action="addFav">添加到收藏夹... <span class="shortcut">Ctrl+D</span></div>
+      <div class="item disabled">整理收藏夹...</div>
+      <div class="sep"></div>
+      <div class="item disabled">⭐ 链接</div>
+      <div class="item disabled">📁 媒体</div>
+      <div class="item disabled">📁 我的电脑</div>
+    </div>
+
+    <div class="dropdown" id="drop-tools">
+      <div class="item disabled">邮件和新闻</div>
+      <div class="item disabled">同步...</div>
+      <div class="sep"></div>
+      <div class="item" data-action="windowsUpdate">Windows Update</div>
+      <div class="sep"></div>
+      <div class="item" data-action="internetOptions">Internet 选项...</div>
+    </div>
+
+    <div class="dropdown" id="drop-help">
+      <div class="item disabled">帮助 <span class="shortcut">F1</span></div>
+      <div class="sep"></div>
+      <div class="item" data-action="about">关于 Internet Explorer</div>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar" id="toolbar">
+    <button id="backBtn"><span class="btn-icon">◀</span> 后退</button>
+    <button id="forwardBtn"><span class="btn-icon">▶</span> 前进</button>
+    <button id="stopBtn"><span class="btn-icon">✖</span> 停止</button>
+    <button id="refreshBtn"><span class="btn-icon">↻</span> 刷新</button>
+    <button id="homeBtn"><span class="btn-icon">🏠</span> 主页</button>
+    <div class="sep"></div>
+    <button id="searchBtn"><span class="btn-icon">🔍</span> 搜索</button>
+    <button id="favBtn"><span class="btn-icon">⭐</span> 收藏</button>
+    <div class="sep"></div>
+    <button id="historyBtn"><span class="btn-icon">📄</span> 历史</button>
+    <button id="mailBtn"><span class="btn-icon">✉</span> 邮件</button>
+    <button id="printBtn"><span class="btn-icon">🖨</span> 打印</button>
+  </div>
+
+  <!-- 地址栏 -->
+  <div class="address-bar">
+    <label>地址(D):</label>
+    <input type="text" id="addressInput" value="https://example.com">
+    <button class="go-btn" id="goBtn">转到</button>
+  </div>
+
+  <!-- 内容 -->
+  <div class="content">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <span>⏳ 正在打开网页...</span>
+    </div>
+    <iframe id="contentFrame" src="https://example.com"></iframe>
+  </div>
+
+  <!-- 状态栏 -->
+  <div class="status-bar" id="statusBar">
+    <div class="left">
+      <span id="statusText">完成</span>
+      <span>📁 我的电脑</span>
+    </div>
+    <div class="right">
+      <div class="progress"><div class="fill" id="progressFill"></div></div>
+      <span class="zone">Internet</span>
+    </div>
+  </div>
+</div>
+
+<!-- 全局对话框 -->
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog-box" id="dialogBox">
+    <div class="title" id="dialogTitle">📌 提示</div>
+    <div class="body" id="dialogBody">内容</div>
+    <div class="btns" id="dialogBtns">
+      <button id="dialogOk">确定</button>
+      <button id="dialogCancel" style="display:none;">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== 工具函数 =====
+  function showDialog(title, body, isConfirm = false) {
+    const overlay = document.getElementById('dialogOverlay');
+    document.getElementById('dialogTitle').innerHTML = '📌 ' + title;
+    document.getElementById('dialogBody').innerHTML = body;
+    const okBtn = document.getElementById('dialogOk');
+    const cancelBtn = document.getElementById('dialogCancel');
+    if (isConfirm) {
+      cancelBtn.style.display = 'block';
+      return new Promise((resolve) => {
+        okBtn.onclick = () => { overlay.classList.remove('show'); resolve(true); };
+        cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
+        overlay.classList.add('show');
+      });
+    } else {
+      cancelBtn.style.display = 'none';
+      okBtn.onclick = () => overlay.classList.remove('show');
+      overlay.classList.add('show');
+    }
+  }
+
+  function showAbout() {
+    const overlay = document.getElementById('dialogOverlay');
+    document.getElementById('dialogTitle').innerHTML = '📌 关于 Internet Explorer';
+    document.getElementById('dialogBody').innerHTML = `
+      <div style="display:flex;gap:16px;align-items:flex-start;">
+        <div style="font-size:48px;color:#0a246a;font-style:italic;font-family:'Times New Roman',serif;font-weight:bold;background:#ece9d8;width:60px;height:60px;display:flex;align-items:center;justify-content:center;border:2px solid #a0a0a0;flex-shrink:0;">e</div>
+        <div>
+          <h3 style="font-size:16px;margin-bottom:4px;">Internet Explorer 5.0</h3>
+          <p style="margin:2px 0;color:#444;">版本 5.00.2920.0000</p>
+          <p style="margin:2px 0;color:#444;">© 1999 Microsoft Corporation</p>
+          <p style="margin:6px 0 0 0;color:#666;font-size:11px;">此产品由 Microsoft 公司授权</p>
+        </div>
+      </div>
+    `;
+    document.getElementById('dialogCancel').style.display = 'none';
+    document.getElementById('dialogOk').onclick = () => overlay.classList.remove('show');
+    overlay.classList.add('show');
+  }
+
+  // ===== 菜单下拉 =====
+  const dropdowns = {
+    file: document.getElementById('drop-file'),
+    edit: document.getElementById('drop-edit'),
+    view: document.getElementById('drop-view'),
+    fav: document.getElementById('drop-fav'),
+    tools: document.getElementById('drop-tools'),
+    help: document.getElementById('drop-help')
+  };
+  let activeMenu = null;
+
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = item.dataset.menu;
+      const drop = dropdowns[menu];
+      document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+      if (activeMenu === menu) { activeMenu = null; return; }
+      drop.classList.add('show');
+      activeMenu = menu;
+      const rect = item.getBoundingClientRect();
+      const menuBarRect = document.getElementById('menuBar').getBoundingClientRect();
+      drop.style.left = (rect.left - menuBarRect.left) + 'px';
+      drop.style.top = '100%';
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+    activeMenu = null;
+  });
+
+  // ===== 菜单功能实现 =====
+  document.querySelectorAll('.dropdown .item[data-action]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = item.dataset.action;
+      // 关闭下拉
+      document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+      activeMenu = null;
+
+      switch(action) {
+        case 'newWindow':
+          showDialog('新建窗口', '是否打开一个新的浏览器窗口？', true).then(ok => {
+            if (ok) window.open(window.location.href, '_blank');
+          });
+          break;
+        case 'newMail':
+          showDialog('新建邮件', '此功能需要安装 Outlook Express。<br>是否打开默认邮件客户端？', true).then(ok => {
+            if (ok) window.location.href = 'mailto:';
+          });
+          break;
+        case 'open':
+          showDialog('打开', '请输入要打开的网址：<br><input type="text" id="openUrl" value="https://">', true).then(ok => {
+            if (ok) {
+              const url = document.getElementById('openUrl').value;
+              if (url && url !== 'https://') navigate(url);
+            }
+          });
+          break;
+        case 'pageSetup':
+          showDialog('页面设置', '📄 页面设置对话框 (假的)<br><br>纸张大小: A4<br>方向: 纵向<br>边距: 左 20mm, 右 20mm');
+          break;
+        case 'print':
+          showDialog('打印', '🖨️ 准备打印当前页面...<br><br>是否继续？', true).then(ok => {
+            if (ok) showDialog('打印', '✅ 已发送到打印机 (假的)');
+          });
+          break;
+        case 'offline':
+          const check = document.getElementById('offlineCheck');
+          if (check.textContent === '✓') {
+            check.textContent = '';
+            showDialog('脱机工作', '已切换到在线工作模式');
+          } else {
+            check.textContent = '✓';
+            showDialog('脱机工作', '已切换到脱机工作模式<br><br>⚠️ 某些页面可能无法访问');
+          }
+          break;
+        case 'close':
+          document.getElementById('closeBtn').click();
+          break;
+        case 'find':
+          showDialog('查找', '🔍 在当前页面查找：<br><input type="text" id="findText" placeholder="输入要查找的文字">', true).then(ok => {
+            if (ok) {
+              const txt = document.getElementById('findText').value;
+              if (txt) showDialog('查找结果', `✅ 已找到 "${txt}" (假的搜索)`);
+            }
+          });
+          break;
+        case 'toggleToolbar':
+          const tb = document.getElementById('toolbar');
+          const chk = document.getElementById('toolbarCheck');
+          if (tb.style.display === 'none') {
+            tb.style.display = 'flex';
+            chk.textContent = '✓';
+          } else {
+            tb.style.display = 'none';
+            chk.textContent = '';
+          }
+          break;
+        case 'toggleStatus':
+          const sb = document.getElementById('statusBar');
+          const chk2 = document.getElementById('statusCheck');
+          if (sb.style.display === 'none') {
+            sb.style.display = 'flex';
+            chk2.textContent = '✓';
+          } else {
+            sb.style.display = 'none';
+            chk2.textContent = '';
+          }
+          break;
+        case 'stop':
+          document.getElementById('stopBtn').click();
+          break;
+        case 'refresh':
+          document.getElementById('refreshBtn').click();
+          break;
+        case 'fullscreen':
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.();
+          } else {
+            document.exitFullscreen?.();
+          }
+          break;
+        case 'addFav':
+          const url = document.getElementById('addressInput').value;
+          showDialog('添加到收藏夹', `⭐ 将当前页添加到收藏夹？<br><br>名称: ${document.getElementById('windowTitle').textContent}<br>地址: ${url}`, true).then(ok => {
+            if (ok) showDialog('收藏夹', '✅ 已添加到收藏夹 (假的)');
+          });
+          break;
+        case 'windowsUpdate':
+          showDialog('Windows Update', '🌐 正在连接到 Windows Update...<br><br>(假的) 请稍候...');
+          break;
+        case 'internetOptions':
+          showDialog('Internet 选项', '⚙️ Internet 选项对话框 (假的)<br><br>• 主页: https://www.microsoft.com<br>• 临时文件: 50MB<br>• 连接: 局域网设置');
+          break;
+        case 'about':
+          showAbout();
+          break;
+      }
+    });
+  });
+
+  // ===== 窗口拖拽 =====
+  const titleBar = document.getElementById('titleBar');
+  const windowEl = document.getElementById('ieWindow');
+  let isDragging = false, dragX, dragY, winX, winY;
+
+  titleBar.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.controls')) return;
+    isDragging = true;
+    const rect = windowEl.getBoundingClientRect();
+    dragX = e.clientX - rect.left;
+    dragY = e.clientY - rect.top;
+    windowEl.style.cursor = 'move';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const left = e.clientX - dragX;
+    const top = e.clientY - dragY;
+    windowEl.style.left = Math.max(0, left) + 'px';
+    windowEl.style.top = Math.max(0, top) + 'px';
+    windowEl.style.transform = 'none';
+  });
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    windowEl.style.cursor = 'default';
+  });
+
+  // ===== 窗口控制 =====
+  document.getElementById('closeBtn').addEventListener('click', () => {
+    showDialog('关闭 Internet Explorer', '确定要关闭 Internet Explorer 吗？', true).then(ok => {
+      if (ok) windowEl.style.display = 'none';
+    });
+  });
+
+  let isMaximized = false;
+  document.getElementById('maxBtn').addEventListener('click', () => {
+    if (!isMaximized) {
+      windowEl.style.width = '100vw';
+      windowEl.style.height = '100vh';
+      windowEl.style.left = '0';
+      windowEl.style.top = '0';
+      windowEl.style.transform = 'none';
+      windowEl.style.border = 'none';
+      windowEl.style.borderRadius = '0';
+      isMaximized = true;
+    } else {
+      windowEl.style.width = '880px';
+      windowEl.style.height = '640px';
+      windowEl.style.left = '50%';
+      windowEl.style.top = '50%';
+      windowEl.style.transform = 'translate(-50%, -50%)';
+      windowEl.style.border = '3px solid';
+      windowEl.style.borderColor = '#ffffff #404040 #404040 #ffffff';
+      isMaximized = false;
+    }
+  });
+
+  document.getElementById('minBtn').addEventListener('click', () => {
+    windowEl.style.display = 'none';
+    setTimeout(() => { windowEl.style.display = 'flex'; }, 100);
+  });
+
+  // ===== 导航 =====
+  const input = document.getElementById('addressInput');
+  const goBtn = document.getElementById('goBtn');
+  const frame = document.getElementById('contentFrame');
+  const progressFill = document.getElementById('progressFill');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const statusText = document.getElementById('statusText');
+
+  let history = ['https://example.com'];
+  let historyIndex = 0;
+
+  function navigate(url) {
+    if (!url || url === '') return;
+    if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('about:')) {
+      url = 'https://' + url;
+    }
+    if (history[historyIndex] !== url) {
+      history = history.slice(0, historyIndex + 1);
+      history.push(url);
+      historyIndex++;
+    }
+    frame.src = url;
+    input.value = url;
+    statusText.textContent = '正在连接...';
+    loadingOverlay.classList.add('show');
+    progressFill.style.width = '0%';
+    let p = 0;
+    const interval = setInterval(() => {
+      p += Math.random() * 12 + 3;
+      if (p >= 100) { p = 100; clearInterval(interval);
+        setTimeout(() => {
+          loadingOverlay.classList.remove('show');
+          statusText.textContent = '完成';
+        }, 300);
+      }
+      progressFill.style.width = Math.min(p, 100) + '%';
+    }, 150);
+  }
+
+  goBtn.addEventListener('click', () => navigate(input.value));
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') navigate(input.value); });
+
+  // ===== 工具栏 =====
+  document.getElementById('homeBtn').addEventListener('click', () => navigate('https://www.microsoft.com'));
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    frame.src = frame.src;
+    statusText.textContent = '刷新中...';
+    setTimeout(() => statusText.textContent = '完成', 800);
+  });
+  document.getElementById('backBtn').addEventListener('click', () => {
+    if (historyIndex > 0) { historyIndex--; navigate(history[historyIndex]); }
+  });
+  document.getElementById('forwardBtn').addEventListener('click', () => {
+    if (historyIndex < history.length - 1) { historyIndex++; navigate(history[historyIndex]); }
+  });
+  document.getElementById('stopBtn').addEventListener('click', () => {
+    frame.src = 'about:blank';
+    loadingOverlay.classList.remove('show');
+    statusText.textContent = '已停止';
+    progressFill.style.width = '0%';
+  });
+
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    showDialog('搜索', '🔍 输入搜索关键词：<br><input type="text" id="searchInput" placeholder="输入关键词">', true).then(ok => {
+      if (ok) {
+        const q = document.getElementById('searchInput').value;
+        if (q) navigate('https://www.bing.com/search?q=' + encodeURIComponent(q));
+      }
+    });
+  });
+
+  document.getElementById('favBtn').addEventListener('click', () => {
+    const url = input.value;
+    showDialog('添加到收藏夹', `⭐ 收藏当前页面？<br><br>名称: ${document.getElementById('windowTitle').textContent}<br>地址: ${url}`, true).then(ok => {
+      if (ok) showDialog('收藏夹', '✅ 已添加到收藏夹');
+    });
+  });
+
+  document.getElementById('historyBtn').addEventListener('click', () => {
+    let list = history.map((h, i) => `${i === historyIndex ? '▶ ' : ''}${h}`).join('<br>');
+    showDialog('历史记录', `📄 浏览历史 (${history.length}条)<br><br>${list}`);
+  });
+
+  document.getElementById('mailBtn').addEventListener('click', () => {
+    showDialog('邮件', '📧 打开默认邮件客户端？', true).then(ok => {
+      if (ok) window.location.href = 'mailto:';
+    });
+  });
+
+  document.getElementById('printBtn').addEventListener('click', () => {
+    showDialog('打印', '🖨️ 打印当前页面？', true).then(ok => {
+      if (ok) showDialog('打印', '✅ 已发送到打印机 (假的)');
+    });
+  });
+
+  // ===== 键盘快捷键 =====
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'n') { e.preventDefault(); document.querySelector('[data-action="newWindow"]').click(); }
+    if (e.ctrlKey && e.key === 'o') { e.preventDefault(); document.querySelector('[data-action="open"]').click(); }
+    if (e.ctrlKey && e.key === 'p') { e.preventDefault(); document.querySelector('[data-action="print"]').click(); }
+    if (e.ctrlKey && e.key === 'w') { e.preventDefault(); document.querySelector('[data-action="close"]').click(); }
+    if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.querySelector('[data-action="find"]').click(); }
+    if (e.ctrlKey && e.key === 'd') { e.preventDefault(); document.querySelector('[data-action="addFav"]').click(); }
+    if (e.key === 'F5') { e.preventDefault(); document.querySelector('[data-action="refresh"]').click(); }
+    if (e.key === 'Escape') { document.querySelector('[data-action="stop"]').click(); }
+    if (e.key === 'F11') { e.preventDefault(); document.querySelector('[data-action="fullscreen"]').click(); }
+  });
+
+  // ===== 初始加载 =====
+  setTimeout(() => {
+    loadingOverlay.classList.remove('show');
+    statusText.textContent = '完成';
+    progressFill.style.width = '100%';
+  }, 800);
+
+  input.addEventListener('click', () => input.select());
+  console.log('🚀 Internet Explorer 5.0 复古版已启动！');
+  console.log('💡 所有菜单功能均可使用，支持键盘快捷键');
+</script>
+</body>
+</html>
